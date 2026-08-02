@@ -7,7 +7,9 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "build": "tsc",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -29,5 +31,8 @@
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
+  },
+  "lint-staged": {
+    "*.ts": ["vitest related --run"]
   }
 }
