@@ -10,14 +10,14 @@ import { SinglePointOfFailureDetector } from '../engine/detectors/singlePointOfF
 import { getCachedRisks } from '../cache/riskCache';
 
 const pool = new Pool();
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const engine = new RiskEngine([
   new GhostReservationDetector(),
   new HoardingDetector(),
   new SinglePointOfFailureDetector(),
 ]);
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const server = new McpServer({ name: 'resource-guardian', version: '1.0.0' });
 
 server.tool('get_risk_report', 'Returns current resource risk signals: ghost reservations, hoarding, single points of failure', {}, async () => {
   const risks = await getCachedRisks(redis, pool, engine);
