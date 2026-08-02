@@ -25,6 +25,7 @@ async function getOrCreateResource(name: string, pool_: string, cache: Map<strin
 }
 
 async function main() {
+  const client = await pool.connect();
   const resourceCache = new Map<string, number>();
   const parser = createReadStream('data/hotel_bookings.csv').pipe(
     parse({ columns: true, skip_empty_lines: true })
@@ -33,32 +34,48 @@ async function main() {
   let batch: any[] = [];
   let count = 0;
 
-  for await (const row of parser) {
-    const resourceId = await getOrCreateResource(`Room Type ${row.reserved_room_type}`, row.hotel, resourceCache);
-    const nights = Number(row.stays_in_weekend_nights) + Number(row.stays_in_week_nights);
-    const bookedHours = nights * 24;
-    const used = row.reservation_status === 'Check-Out' ? bookedHours : 0;
-    const month = monthMap[row.arrival_date_month] ?? '01';
-    const bookingStart = `${row.arrival_date_year}-${month}-${String(row.arrival_date_day_of_month).padStart(2, '0')}`;
+  try {
+    await client.query('BEGIN');
 
-    batch.push([resourceId, row.market_segment, bookedHours, used, bookingStart, row.reservation_status]);
-    if (batch.length >= 500) {
-      await flush(batch);
-      count += batch.length;
-      batch = [];
+    for await (const row of parser) {
+      const resourceId = await getOrCreateResource(`Room Type ${row.reserved_room_type}`, row.hotel, resourceCache);
+      const nights = Number(row.stays_in_weekend_nights) + Number(row.stays_in_week_nights);
+      const bookedHours = nights * 24;
+      const used = row.reservation_status === 'Check-Out' ? bookedHours : 0;
+      const month = monthMap[row.arrival_date_month] ?? '01';
+      const bookingStart = `${row.arrival_date_year}-${month}-${String(row.arrival_date_day_of_month).padStart(2, '0')}`;
+
+      batch.push([resourceId, row.market_segment, bookedHours, used, bookingStart, row.reservation_status]);
+      if (batch.length >= 500) {
+        await flush(client, batch);
+        count += batch.length;
+        batch = [];
+      }
     }
+    if (batch.length) {
+      await flush(client, batch);
+      count += batch.length;
+    }
+
+    await client.query('COMMIT'); 
+    console.log(`Ingested ${count} reservations`);
+  } catch (err) {
+    await client.query('ROLLBACK'); // Roll back everything if any batch fails
+    console.error('Ingestion failed! Rolled back all changes:', err);
+    throw err;
+  } finally {
+    client.release();
+    await pool.end();
   }
-  if (batch.length) { await flush(batch); count += batch.length; }
-  console.log(`Ingested ${count} reservations`);
-  await pool.end();
 }
 
-async function flush(rows: any[]) {
+async function flush(client: any, rows: any[]) {
   const values = rows.map((_, i) => `($${i*6+1},$${i*6+2},$${i*6+3},$${i*6+4},$${i*6+5},$${i*6+6})`).join(',');
   const flat = rows.flat();
-  await pool.query(
+  await client.query(
     `INSERT INTO reservations (resource_id, team, booked_hours, actual_used_hours, booking_start, raw_status)
-     VALUES ${values}`,
+     VALUES ${values}
+     ON CONFLICT ON CONSTRAINT unique_reservation DO NOTHING`,
     flat
   );
 }
