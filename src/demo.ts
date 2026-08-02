@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { Redis } from 'ioredis';
 import { RiskEngine } from './engine/riskEngine';
 import { GhostReservationDetector } from './engine/detectors/ghostReservation';
 import { HoardingDetector } from './engine/detectors/hoarding';
@@ -8,13 +9,23 @@ import { recommend } from './engine/recommend';
 
 async function main() {
   const pool = new Pool();
-  const engine = new RiskEngine([
-    new GhostReservationDetector(),
-    new HoardingDetector(),
-    new SinglePointOfFailureDetector(),
-  ]);
-  const risks = (await engine.run(pool)).sort((a, b) => b.score - a.score);
+  const redis = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+    lazyConnect: true,
+  });
+  redis.on('error', (err) => console.warn('Redis notice:', err.message));
 
+  const engine = new RiskEngine(
+    [
+      new GhostReservationDetector(),
+      new HoardingDetector(),
+      new SinglePointOfFailureDetector(),
+    ],
+    redis
+  );
+
+  const risks = (await engine.run(pool)).sort((a, b) => b.score - a.score);
   console.log(`\n=== Resource Guardian Risk Report ===`);
   console.log(`${risks.length} risk signals found\n`);
 
