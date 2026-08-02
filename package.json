@@ -9,7 +9,9 @@
   "scripts": {
     "test": "vitest run",
     "build": "tsc",
-    "prepare": "husky"
+    "prepare": "husky",
+    "demo": "tsx src/demo.ts",
+    "ingest": "tsx src/ingest/load.ts"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +35,8 @@
     "vitest": "^4.1.10"
   },
   "lint-staged": {
-    "*.ts": ["vitest related --run"]
+    "*.ts": [
+      "vitest related --run"
+    ]
   }
 }
