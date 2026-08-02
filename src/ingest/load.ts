@@ -34,7 +34,7 @@ async function main() {
   let count = 0;
 
   for await (const row of parser) {
-    const resourceId = await getOrCreateResource(row.reserved_room_type, row.hotel, resourceCache);
+    const resourceId = await getOrCreateResource(`Room Type ${row.reserved_room_type}`, row.hotel, resourceCache);
     const nights = Number(row.stays_in_weekend_nights) + Number(row.stays_in_week_nights);
     const bookedHours = nights * 24;
     const used = row.reservation_status === 'Check-Out' ? bookedHours : 0;
