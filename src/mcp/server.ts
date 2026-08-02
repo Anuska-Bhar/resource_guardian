@@ -17,7 +17,7 @@ const engine = new RiskEngine([
   new SinglePointOfFailureDetector(),
 ]);
 
-const server = new McpServer({ name: 'resource-guardian', version: '1.0.0' });
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 server.tool('get_risk_report', 'Returns current resource risk signals: ghost reservations, hoarding, single points of failure', {}, async () => {
   const risks = await getCachedRisks(redis, pool, engine);

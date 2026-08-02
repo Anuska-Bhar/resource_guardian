@@ -8,6 +8,6 @@ describe('HoardingDetector', () => {
     };
     const result = await new HoardingDetector().detect(mockPool as any);
     expect(result).toHaveLength(1);
-    expect(result[0].score).toBeCloseTo(0.8);
+    expect(result[0]!.score).toBeCloseTo(0.8);
   });
 });
