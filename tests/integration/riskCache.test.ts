@@ -1,10 +1,7 @@
 import { describe, beforeAll, beforeEach, afterAll, it, expect } from 'vitest';
 import { getTestPool, applySchema, resetDatabase, seedResource, seedReservation, closeTestPool } from '../helpers/db';
 import { getCachedRisks } from '../../src/cache/riskCache';
-import { RiskEngine } from '../../src/engine/riskEngine';
-import { GhostReservationDetector } from '../../src/engine/detectors/ghostReservation';
-import { HoardingDetector } from '../../src/engine/detectors/hoarding';
-import { SinglePointOfFailureDetector } from '../../src/engine/detectors/singlePointOfFailure';
+import { createRiskEngine } from '../../src/engine/riskEngine';
 import type { PoolClient } from 'pg';
 
 describe('riskCache (integration)', () => {
@@ -35,11 +32,7 @@ describe('riskCache (integration)', () => {
   });
 
   it('queries DB on cache miss and populates cache', async () => {
-    const engine = new RiskEngine([
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ]);
+    const engine = createRiskEngine();
 
     const results = await getCachedRisks(redis, getTestPool(), engine);
     expect(results.length).toBeGreaterThan(0);
@@ -53,11 +46,7 @@ describe('riskCache (integration)', () => {
   });
 
   it('returns cached data on cache hit without querying DB', async () => {
-    const engine = new RiskEngine([
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ]);
+    const engine = createRiskEngine();
 
     // first call: cache miss, populates cache
     const firstResults = await getCachedRisks(redis, getTestPool(), engine);
@@ -74,11 +63,7 @@ describe('riskCache (integration)', () => {
 
   it('handles empty result sets', async () => {
     await resetDatabase();
-    const engine = new RiskEngine([
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ]);
+    const engine = createRiskEngine();
 
     await redis.del('risk:latest');
     const results = await getCachedRisks(redis, getTestPool(), engine);

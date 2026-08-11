@@ -3,20 +3,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { Pool } from 'pg';
 import Redis from 'ioredis';
-import { RiskEngine } from '../engine/riskEngine';
-import { GhostReservationDetector } from '../engine/detectors/ghostReservation';
-import { HoardingDetector } from '../engine/detectors/hoarding';
-import { SinglePointOfFailureDetector } from '../engine/detectors/singlePointOfFailure';
+import { createRiskEngine } from '../engine/riskEngine';
 import { getCachedRisks } from '../cache/riskCache';
 import { z } from 'zod';
 
 const pool = new Pool();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const engine = new RiskEngine([
-  new GhostReservationDetector(),
-  new HoardingDetector(),
-  new SinglePointOfFailureDetector(),
-]);
+const engine = createRiskEngine();
 
 const server = new McpServer({ name: 'resource-guardian', version: '1.0.0' });
 

@@ -1,9 +1,6 @@
 import { describe, beforeAll, beforeEach, afterAll, it, expect } from 'vitest';
 import { getTestPool, applySchema, resetDatabase, seedResource, seedReservation, closeTestPool } from '../helpers/db';
-import { RiskEngine } from '../../src/engine/riskEngine';
-import { GhostReservationDetector } from '../../src/engine/detectors/ghostReservation';
-import { HoardingDetector } from '../../src/engine/detectors/hoarding';
-import { SinglePointOfFailureDetector } from '../../src/engine/detectors/singlePointOfFailure';
+import { createRiskEngine } from '../../src/engine/riskEngine';
 import type { PoolClient } from 'pg';
 
 describe('RiskEngine (integration)', () => {
@@ -36,11 +33,7 @@ describe('RiskEngine (integration)', () => {
     // Room B: minimal usage
     await seedReservation(client, resB, 'Online TA', 120, 10, '2024-01-15', 'Check-Out');
 
-    const engine = new RiskEngine([
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ]);
+    const engine = createRiskEngine();
 
     const results = await engine.run(getTestPool());
 
@@ -52,11 +45,7 @@ describe('RiskEngine (integration)', () => {
   });
 
   it('returns empty array when no data exists', async () => {
-    const engine = new RiskEngine([
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ]);
+    const engine = createRiskEngine();
 
     const results = await engine.run(getTestPool());
     expect(results).toHaveLength(0);
@@ -67,11 +56,7 @@ describe('RiskEngine (integration)', () => {
     await seedReservation(client, resA, 'Online TA', 120, 0, '2024-01-15', 'No-Show');
     await seedReservation(client, resA, 'Online TA', 120, 0, '2024-01-16', 'No-Show');
 
-    const engine = new RiskEngine([
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ]);
+    const engine = createRiskEngine();
 
     const results = await engine.run(getTestPool());
     expect(results.length).toBeGreaterThan(0);

@@ -1,10 +1,7 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { Redis } from 'ioredis';
-import { RiskEngine } from './engine/riskEngine';
-import { GhostReservationDetector } from './engine/detectors/ghostReservation';
-import { HoardingDetector } from './engine/detectors/hoarding';
-import { SinglePointOfFailureDetector } from './engine/detectors/singlePointOfFailure';
+import { createRiskEngine } from './engine/riskEngine';
 import { recommend } from './engine/recommend';
 import { getCachedRisks } from './cache/riskCache';
 
@@ -17,11 +14,7 @@ async function main() {
   });
   redis.on('error', (err) => console.warn('Redis notice:', err.message));
 
-  const engine = new RiskEngine([
-    new GhostReservationDetector(),
-    new HoardingDetector(),
-    new SinglePointOfFailureDetector(),
-  ]);
+  const engine = createRiskEngine();
 
   const risks = (await getCachedRisks(redis, pool, engine)).sort((a, b) => b.score - a.score);
   console.log(`\n=== Resource Guardian Risk Report ===`);
