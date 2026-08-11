@@ -1,11 +1,45 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  lint-and-typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - name: Type-check
+        run: npx tsc --noEmit
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - name: Run unit tests
+        run: npx vitest run tests/hoarding.test.ts
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -16,13 +50,19 @@ jobs:
           POSTGRES_DB: resource_guardian
         ports: ['5432:5432']
         options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
       redis:
         image: redis:7
         ports: ['6379:6379']
         options: >-
-          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v4
@@ -35,22 +75,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify PostgreSQL Schema Migration
+      - name: Verify PostgreSQL schema migration
         env:
           PGPASSWORD: changeme
-        run: |
-          psql -h localhost -U guardian_app -d resource_guardian -f src/db/schema.sql
+        run: psql -h localhost -U guardian_app -d resource_guardian -f src/db/schema.sql
 
       - name: Build project
         run: npm run build
 
-      - name: Run Test Suite (with Postgres & Redis integration)
+      - name: Run integration tests
         env:
           PGHOST: localhost
           PGPORT: 5432
           PGUSER: guardian_app
           PGPASSWORD: changeme
           PGDATABASE: resource_guardian
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-        run: npm test
+          REDIS_URL: redis://localhost:6379
+        run: npx vitest run tests/integration/
+
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t resource-guardian:ci .
