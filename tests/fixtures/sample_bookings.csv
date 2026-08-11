@@ -1,0 +1,11 @@
+hotel,reserved_room_type,market_segment,stays_in_weekend_nights,stays_in_week_nights,reservation_status,arrival_date_year,arrival_date_month,arrival_date_day_of_month
+Resort Hotel,A,Online TA,2,3,Check-Out,2024,January,15
+Resort Hotel,A,Online TA,1,4,Check-Out,2024,January,16
+Resort Hotel,A,Corporate,2,3,Canceled,2024,January,18
+Resort Hotel,B,Online TA,0,2,Check-Out,2024,January,20
+Resort Hotel,B,Online TA,0,5,No-Show,2024,January,22
+City Hotel,A,Direct,2,5,Check-Out,2024,January,10
+City Hotel,A,Direct,0,1,Check-Out,2024,January,12
+City Hotel,C,Corporate,1,3,Canceled,2024,January,14
+City Hotel,C,Corporate,2,4,Check-Out,2024,January,16
+City Hotel,C,Corporate,0,2,Check-Out,2024,January,18

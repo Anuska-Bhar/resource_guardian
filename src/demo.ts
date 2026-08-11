@@ -6,6 +6,7 @@ import { GhostReservationDetector } from './engine/detectors/ghostReservation';
 import { HoardingDetector } from './engine/detectors/hoarding';
 import { SinglePointOfFailureDetector } from './engine/detectors/singlePointOfFailure';
 import { recommend } from './engine/recommend';
+import { getCachedRisks } from './cache/riskCache';
 
 async function main() {
   const pool = new Pool();
@@ -16,16 +17,13 @@ async function main() {
   });
   redis.on('error', (err) => console.warn('Redis notice:', err.message));
 
-  const engine = new RiskEngine(
-    [
-      new GhostReservationDetector(),
-      new HoardingDetector(),
-      new SinglePointOfFailureDetector(),
-    ],
-    redis
-  );
+  const engine = new RiskEngine([
+    new GhostReservationDetector(),
+    new HoardingDetector(),
+    new SinglePointOfFailureDetector(),
+  ]);
 
-  const risks = (await engine.run(pool)).sort((a, b) => b.score - a.score);
+  const risks = (await getCachedRisks(redis, pool, engine)).sort((a, b) => b.score - a.score);
   console.log(`\n=== Resource Guardian Risk Report ===`);
   console.log(`${risks.length} risk signals found\n`);
 
