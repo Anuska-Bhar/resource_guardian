@@ -131,6 +131,8 @@ npm run test
   Recommendation: Add a "confirm attendance" step...
 
 ## Project structure
+
+```text
 .
 ├── src/
 │   ├── cache/
